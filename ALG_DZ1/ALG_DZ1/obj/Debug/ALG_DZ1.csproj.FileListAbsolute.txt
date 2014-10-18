@@ -1,0 +1,6 @@
+c:\users\администратор\documents\visual studio 2012\Projects\ALG_DZ1\ALG_DZ1\bin\Debug\ALG_DZ1.exe.config
+c:\users\администратор\documents\visual studio 2012\Projects\ALG_DZ1\ALG_DZ1\bin\Debug\ALG_DZ1.exe
+c:\users\администратор\documents\visual studio 2012\Projects\ALG_DZ1\ALG_DZ1\bin\Debug\ALG_DZ1.pdb
+c:\users\администратор\documents\visual studio 2012\Projects\ALG_DZ1\ALG_DZ1\obj\Debug\ALG_DZ1.csprojResolveAssemblyReference.cache
+c:\users\администратор\documents\visual studio 2012\Projects\ALG_DZ1\ALG_DZ1\obj\Debug\ALG_DZ1.exe
+c:\users\администратор\documents\visual studio 2012\Projects\ALG_DZ1\ALG_DZ1\obj\Debug\ALG_DZ1.pdb
