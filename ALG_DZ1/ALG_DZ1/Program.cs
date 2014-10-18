@@ -10,6 +10,7 @@ namespace ALG_DZ1
 {
     class Program
     {
+        enum AlgType { RIJNDAEL, DES };
         static void Main(string[] args)
         {
             try
@@ -57,90 +58,103 @@ namespace ALG_DZ1
                 if (args[5] != "-alg")
                     throw new Exception("Неверный аргумент, указывающий на используемый алгоритм (необходим -alg).");
 
-                bool RIJNDAEL = false, DES = false;
+                AlgType CurrAlg;
                 if (args[6] == "rijndael")
                 {
-                    RIJNDAEL = true;
+                    CurrAlg = AlgType.RIJNDAEL;
                 }
-                else if (args[5] == "des")
+                else if (args[6] == "des")
                 {
-                    DES = true;
+                    CurrAlg = AlgType.DES;
                 }
                 else
                     throw new Exception("Неверное название алгоритма (необходимо rijndael или des).");
 
-                if (RIJNDAEL)
-                {
-                    byte[] OutputBuf = new byte[0];
-                    byte[] sha = new byte[0];
-                    string password;
-                    int BYTES_WRITTEN;
-                    Console.WriteLine("Введите пароль:");
-                    password = Console.ReadLine();
-                    DateTime Start = DateTime.Now;
-                    fn_Rijndael_Password_Crypt(InputBuf, ref OutputBuf, password, ENCRYPT);
-                    TimeSpan Time = DateTime.Now - Start;
-                    File.WriteAllBytes(strOutputFileName, OutputBuf);
-                    BYTES_WRITTEN = OutputBuf.Length;
-                    if (ENCRYPT)
-                        fn_SHA384_calculate(ref sha, InputBuf);
-                    else
-                        fn_SHA384_calculate(ref sha, OutputBuf);
-                    Console.WriteLine("Затраченное время: {0}", Time);
-                    Console.WriteLine("Объём входного файла: {0} байт.", BYTES_READED);
-                    Console.WriteLine("Объём выходного файла: {0} байт.", BYTES_WRITTEN);
-                    Console.WriteLine("Хеш: {0} ", Convert.ToBase64String(sha));
-                    Console.ReadLine();
-                    return;
-                }
+                byte[] OutputBuf = new byte[0];
+                byte[] sha = new byte[0];
+                string password;
+                int BYTES_WRITTEN;
+                Console.WriteLine("Введите пароль:");
+                password = Console.ReadLine();                
 
-                /*if (DES)
-                {
-                    byte[] OutputBuf = new byte[0];
-                    byte[] sha;
-                    int BYTES_WRITTEN;
-                    
-                    File.WriteAllBytes(strOutputFileName, OutputBuf);
-                    return;
-                }*/
+                DateTime Start = DateTime.Now;
+                if (CurrAlg == AlgType.RIJNDAEL)
+                    fn_Rijndael_DES_Password_Crypt(InputBuf, ref OutputBuf, password, ENCRYPT, AlgType.RIJNDAEL);
+                else
+                    fn_Rijndael_DES_Password_Crypt(InputBuf, ref OutputBuf, password, ENCRYPT, AlgType.DES);
+                TimeSpan Time = DateTime.Now - Start;
+                File.WriteAllBytes(strOutputFileName, OutputBuf);
+                BYTES_WRITTEN = OutputBuf.Length;
+                if (ENCRYPT)
+                   fn_SHA384_calculate(ref sha, InputBuf);
+                else
+                   fn_SHA384_calculate(ref sha, OutputBuf);
+                Console.WriteLine("Затраченное время: {0} миллисекунд", Time.TotalMilliseconds);
+                Console.WriteLine("Объём входного файла: {0} байт.", BYTES_READED);
+                Console.WriteLine("Объём выходного файла: {0} байт.", BYTES_WRITTEN);
+                Console.WriteLine("Хеш: {0} ", Convert.ToBase64String(sha));
+                Console.ReadLine();                                                  
             }//try
+            catch (CryptographicException ex)
+            {
+                Console.WriteLine("Неверный пароль.");
+            }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                Console.ReadLine();
-            }
+                Console.WriteLine(ex.Message);                
+            }           
         }//main        
-        static void fn_Rijndael_Byte_key_IV_Crypt(
+        static void fn_Rijndael_DES_Byte_key_IV_Crypt(
             byte[] InputBuf,
             ref byte[] OutputBuf,
             byte[] key, 
             byte[] IV,
-            bool ENCRYPT)
+            bool ENCRYPT,
+            AlgType CurrAlg)
         {
-            Rijndael myRijndael = new RijndaelManaged();           
-            myRijndael.Key = key;
-            myRijndael.IV = IV;
-            ICryptoTransform cryptor;
-            if( ENCRYPT )
-                cryptor = myRijndael.CreateEncryptor();
-            else
-                cryptor = myRijndael.CreateDecryptor();
+            Rijndael myRijndael;
+            TripleDESCryptoServiceProvider myDES;
+            ICryptoTransform cryptor = null;
+            if (CurrAlg == AlgType.RIJNDAEL)
+            {
+                myRijndael = new RijndaelManaged();
+                myRijndael.Key = key;
+                myRijndael.IV = IV;
+                if (ENCRYPT)
+                    cryptor = myRijndael.CreateEncryptor();
+                else
+                    cryptor = myRijndael.CreateDecryptor();
+            }
+            else if (CurrAlg == AlgType.DES)
+            {
+                myDES = new TripleDESCryptoServiceProvider();
+                myDES.Key = key;
+                myDES.IV = IV;
+                if (ENCRYPT)
+                    cryptor = myDES.CreateEncryptor();
+                else
+                    cryptor = myDES.CreateDecryptor();
+            }
             MemoryStream msCrypt = new MemoryStream();
             CryptoStream csCrypt = new CryptoStream(msCrypt, cryptor, CryptoStreamMode.Write);
             csCrypt.Write(InputBuf, 0, InputBuf.Length);            
             csCrypt.Close();
             OutputBuf = msCrypt.ToArray();            
-        }//RijByteEnc
-        static void fn_Rijndael_Password_Crypt(
+        }//RijDESByteEnc
+        static void fn_Rijndael_DES_Password_Crypt(
             byte[] InputBuf,
             ref byte[] OutputBuf,
             string password,
-            bool ENCRYPT)
+            bool ENCRYPT,
+            AlgType CurrAlg)
         {
             byte[] salt = new byte[] {0x49, 0x76, 0x61, 0x6e, 0x20, 0x4d, 
             0x65, 0x64, 0x76, 0x65, 0x64, 0x65, 0x76};
             PasswordDeriveBytes pdb = new PasswordDeriveBytes(System.Text.Encoding.Unicode.GetBytes( password ), salt);            
-            fn_Rijndael_Byte_key_IV_Crypt(InputBuf, ref OutputBuf, pdb.GetBytes(32), pdb.GetBytes(16), ENCRYPT);
+            fn_Rijndael_DES_Byte_key_IV_Crypt(InputBuf, ref OutputBuf,
+                (CurrAlg == AlgType.RIJNDAEL) ? pdb.GetBytes(32) : pdb.GetBytes(24),
+                (CurrAlg == AlgType.RIJNDAEL) ? pdb.GetBytes(16) : pdb.GetBytes(8), 
+                ENCRYPT, CurrAlg);
         }//RijEnc        
         static void fnDES()
         {
